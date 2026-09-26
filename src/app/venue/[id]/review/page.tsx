@@ -65,7 +65,14 @@ export default function ReviewPage() {
     }
     // Reload shared data so new auto-tags and ratings show on the venue page.
     await refresh();
-    router.push(`/venue/${id}`);
+    // Go *back* to the venue page we came from (data already refreshed). Pushing or replacing
+    // would stack a second venue page and make the Back button bounce.
+    back();
+  }
+
+  function back() {
+    if (window.history.length > 1) router.back();
+    else router.replace(`/venue/${id}`);
   }
 
   if (loading) return <div className="m-5 h-40 animate-pulse rounded-[28px] bg-kerb" aria-busy="true" />;
@@ -86,7 +93,7 @@ export default function ReviewPage() {
       <header className={`${KIND_BG[venue.kind]} rounded-b-[28px] px-5 pb-6 pt-3`}>
         <button
           type="button"
-          onClick={() => router.push(`/venue/${id}`)}
+          onClick={back}
           aria-label="Back to venue"
           className="-ml-2 flex h-11 w-11 items-center justify-center rounded-full text-2xl hover:bg-foam/10"
         >
