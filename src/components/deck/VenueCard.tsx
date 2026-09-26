@@ -1,6 +1,8 @@
 import type { RankedVenue } from "@/lib/scoring";
 import { tagLabel } from "@/lib/tags";
-import { Chip, formatKm, KIND_BG, KIND_LABEL, PriceGlyphs } from "./bits";
+import { KIND_BG, KIND_LABEL } from "@/components/ui/KindChip";
+import { PriceGlyphs } from "@/components/ui/PriceGlyphs";
+import { CardChip as Chip, formatKm } from "./bits";
 
 function nameSize(name: string): string {
   if (name.length <= 12) return "text-[56px]";
