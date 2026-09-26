@@ -13,6 +13,7 @@ import { VenueHeader, formatKm } from "@/components/venue/VenueHeader";
 import { VenueTags } from "@/components/venue/VenueTags";
 import { PeopleLikeYou } from "@/components/venue/PeopleLikeYou";
 import { RecentReviews } from "@/components/venue/RecentReviews";
+import { VenueMap } from "@/components/map/VenueMap";
 
 const WALK_MIN_PER_KM = 12;
 
@@ -89,7 +90,7 @@ export default function VenuePage() {
           Get directions
         </a>
 
-        {/* Mini map slot — VenueMap lands in Step 5. */}
+        <VenueMap venues={[{ venue, distanceKm: details.km }]} origin={origin} height="180px" compact />
 
         <RecentReviews reviews={recent.reviews} loading={recent.loading} error={recent.error} onRetry={recent.reload} />
       </div>

@@ -43,6 +43,27 @@ body {
   line-height: 0.9;
 }
 
+/* OSM tiles turned into a night map (the markers sit in a different pane, so they keep their colours). */
+.tiles-night {
+  /* Dark greyscale, then let the night background tint it blue-violet. */
+  filter: invert(1) grayscale(1) brightness(0.7) contrast(1.25);
+  opacity: 0.55;
+}
+
+.leaflet-container.leaflet-container {
+  background: var(--color-night);
+  font-family: var(--font-sans);
+}
+
+.leaflet-container .leaflet-control-attribution {
+  background: rgb(22 20 46 / 0.75);
+  color: rgb(250 241 222 / 0.7);
+}
+
+.leaflet-container .leaflet-control-attribution a {
+  color: var(--color-sodium);
+}
+
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
 }

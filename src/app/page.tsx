@@ -9,6 +9,7 @@ import { useOrigin } from "@/hooks/useOrigin";
 import { SwipeDeck } from "@/components/deck/SwipeDeck";
 import { FilterSheet } from "@/components/filters/FilterSheet";
 import { VenueList } from "@/components/list/VenueList";
+import { VenueMap } from "@/components/map/VenueMap";
 import { Button } from "@/components/ui/Button";
 
 type View = "deck" | "map" | "list";
@@ -156,8 +157,7 @@ function Discover({ profile }: { profile: Profile }) {
       ) : view === "list" ? (
         <VenueList venues={ranked} origin={origin} />
       ) : (
-        // Swap for <VenueMap venues={ranked} origin={origin} /> (next/dynamic, ssr: false) when Person 1 merges it.
-        <Message text="The map is on its way. Use the list for now." />
+        <VenueMap venues={ranked} origin={origin} height="calc(100dvh - 13rem - env(safe-area-inset-bottom))" />
       )}
 
       {filtersOpen && <FilterSheet value={filters} onApply={applyFilters} onClose={closeFilters} />}
