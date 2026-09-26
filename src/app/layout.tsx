@@ -11,6 +11,8 @@ const figtree = Figtree({ subsets: ["latin"], variable: "--font-figtree" });
 export const metadata: Metadata = {
   title: "Rounds",
   description: "Decide where to go out tonight, together.",
+  // Opens full screen from the iOS home screen; "black" keeps content below the status bar.
+  appleWebApp: { capable: true, title: "Rounds", statusBarStyle: "black" },
 };
 
 export const viewport: Viewport = {
