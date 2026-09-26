@@ -87,7 +87,7 @@ out center tags;`;
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
       Accept: "application/json",
-      "User-Agent": "Rounds-hackathon-seed/1.0 (github.com/marioantona/hackathon)",
+      "User-Agent": "MixMatch-hackathon-seed/1.0 (github.com/marioantona/hackathon)",
     },
     body: "data=" + encodeURIComponent(q),
   });

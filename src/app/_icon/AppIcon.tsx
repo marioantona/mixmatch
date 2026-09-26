@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-// The Rounds app icon, drawn for next/og: a stack of venue cards (club, bar,
+// The MixMatch app icon, drawn for next/og: a stack of venue cards (club, bar,
 // sodium) on the night background. Content stays inside the central 60% so it
 // survives Android's maskable-icon crop.
 export function appIcon(size: number): ImageResponse {
@@ -31,7 +31,7 @@ export function appIcon(size: number): ImageResponse {
             fontWeight: 800,
           }}
         >
-          R
+          M
         </div>
       </div>
     ),

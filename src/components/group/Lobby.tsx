@@ -22,7 +22,7 @@ export function Lobby({ code, members, meId, onStart, onLeave }: LobbyProps) {
     const url = `${window.location.origin}/g/${code}`;
     try {
       if (navigator.share) {
-        await navigator.share({ title: "Join my Rounds group", text: `Code ${code}`, url });
+        await navigator.share({ title: "Join my MixMatch group", text: `Code ${code}`, url });
         return;
       }
       await navigator.clipboard.writeText(url);

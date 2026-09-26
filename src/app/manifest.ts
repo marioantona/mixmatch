@@ -4,8 +4,8 @@ import type { MetadataRoute } from "next";
 // Next links this automatically as <link rel="manifest">.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Rounds",
-    short_name: "Rounds",
+    name: "MixMatch",
+    short_name: "MixMatch",
     description: "Decide where to go out tonight, together.",
     start_url: "/",
     display: "standalone",

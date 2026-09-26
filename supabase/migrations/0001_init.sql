@@ -1,4 +1,4 @@
--- Rounds: hackathon schema.
+-- MixMatch: hackathon schema.
 -- Paste this whole file into Supabase Dashboard -> SQL Editor -> Run.
 -- It is safe to re-run: it drops and recreates everything.
 --

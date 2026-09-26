@@ -1,4 +1,4 @@
-# Rounds — setup (≈20 minutes, setup lead only)
+# MixMatch — setup (≈20 minutes, setup lead only)
 
 Commands are for PowerShell on Windows; they also work in bash/zsh except where noted.
 
