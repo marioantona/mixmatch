@@ -72,6 +72,8 @@ export function SwipeDeck({ venues, onSwipe, emptyState }: SwipeDeckProps) {
     function onKey(e: KeyboardEvent) {
       const el = e.target as HTMLElement | null;
       if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+      // A sheet or overlay is on top of the deck.
+      if (document.querySelector('[aria-modal="true"]')) return;
       if (e.key === "ArrowRight") trigger(true);
       else if (e.key === "ArrowLeft") trigger(false);
       else return;
