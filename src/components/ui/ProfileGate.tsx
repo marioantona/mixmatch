@@ -13,7 +13,9 @@ export function ProfileGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!loading && !profile && !open) {
-      const next = pathname === "/" ? "" : `?next=${encodeURIComponent(pathname)}`;
+      // Keep the query too (e.g. ?demo=1) so it survives onboarding.
+      const target = pathname + window.location.search;
+      const next = target === "/" ? "" : `?next=${encodeURIComponent(target)}`;
       router.replace(`/start${next}`);
     }
   }, [loading, profile, open, pathname, router]);
