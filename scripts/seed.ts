@@ -12,8 +12,8 @@ import { config } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { TAG_IDS, tagIndex, type TagId } from "../src/lib/tags";
-import { cosine, normalize, venueVector, zeros, type Venue, type Vec } from "../src/lib/scoring";
+import { AUTO_TAG_MIN_MENTIONS, TAG_IDS, tagIndex, tagLabel, type TagId } from "../src/lib/tags";
+import { cosine, distanceKm, normalize, venueVector, zeros, type Venue, type Vec } from "../src/lib/scoring";
 
 config({ path: ".env.local" });
 
@@ -170,6 +170,9 @@ const FIRST_NAMES = ["Sam", "Priya", "Tom", "Aisha", "Josh", "Mei", "Callum", "Z
 const UP_LINES = ["Proper good night, would go again", "Great atmosphere", "Loved the music", "Decent prices for town", "Staff were lovely", "Exactly my kind of place"];
 const DOWN_LINES = ["Not really my scene", "Too rammed to move", "Pricey for what it is", "Music wasn't for me", "Bit dead when we went"];
 
+const REVIEWERS_PER_ARCHETYPE = 10;
+const VISITS_PER_REVIEWER = 30;
+
 function sigmoid(x: number) {
   return 1 / (1 + Math.exp(-x));
 }
@@ -200,12 +203,15 @@ async function main() {
 
   const r = rng(Number(process.env.SEED ?? 42));
   const profiles: { id: string; display_name: string; budget: number; taste: number[]; is_synthetic: boolean }[] = [];
-  const reviews: { profile_id: string; venue_id: string; thumbs_up: boolean; tags: string[]; body: string }[] = [];
+  const reviews: { profile_id: string; venue_id: string; thumbs_up: boolean; tags: string[]; body: string; created_at: string }[] = [];
+  // Deterministic "now" per run is fine; spread reviews over the last 3 weeks so they don't all read "just now".
+  const now = Date.now();
+  const DAY = 86_400_000;
   const vecs = new Map<string, Vec>(venues.map((v: Venue) => [v.id, venueVector(v)]));
 
   let n = 0;
   for (const a of ARCHETYPES) {
-    for (let j = 0; j < 6; j++) {
+    for (let j = 0; j < REVIEWERS_PER_ARCHETYPE; j++) {
       const taste = zeros();
       for (const t of a.tags) taste[tagIndex(t)] = 0.7 + r() * 0.3;
       for (let k = 0; k < 3; k++) taste[Math.floor(r() * TAG_IDS.length)] += r() * 0.35; // personal quirks
@@ -213,10 +219,14 @@ async function main() {
       const id = crypto.randomUUID();
       profiles.push({ id, display_name: FIRST_NAMES[n++ % FIRST_NAMES.length], budget: a.budget, taste: tv, is_synthetic: true });
 
-      // Each reviewer visits ~10 venues, biased toward places they'd pick.
-      const pool = venues.map((v: Venue) => ({ v, w: Math.exp(3 * cosine(tv, vecs.get(v.id)!)) }));
+      // Each reviewer visits ~VISITS venues, biased toward places they'd pick and toward the
+      // centre (where the demo happens), so demo venues get several similar reviewers each.
+      const pool = venues.map((v: Venue) => {
+        const d = distanceKm(CENTER_LAT, CENTER_LNG, v.lat, v.lng);
+        return { v, w: Math.exp(5 * cosine(tv, vecs.get(v.id)!) - d / 0.8) };
+      });
       const visited = new Set<string>();
-      for (let k = 0; k < Math.min(10, pool.length); k++) {
+      for (let k = 0; k < Math.min(VISITS_PER_REVIEWER, pool.length); k++) {
         const { v } = pickWeighted(r, pool, pool.map((p) => (visited.has(p.v.id) ? 0 : p.w)));
         if (visited.has(v.id)) continue;
         visited.add(v.id);
@@ -227,9 +237,17 @@ async function main() {
         // Occasionally reviewers notice something the listing doesn't say -> emergent auto-tags.
         if (up && r() < 0.15) tags.add(a.tags[Math.floor(r() * a.tags.length)]);
         const lines = up ? UP_LINES : DOWN_LINES;
-        reviews.push({ profile_id: id, venue_id: v.id, thumbs_up: up, tags: [...tags], body: lines[Math.floor(r() * lines.length)] });
+        const created_at = new Date(now - r() * 21 * DAY).toISOString();
+        reviews.push({ profile_id: id, venue_id: v.id, thumbs_up: up, tags: [...tags], body: lines[Math.floor(r() * lines.length)], created_at });
       }
     }
+  }
+
+  const demo = prepareAutoTagDemo(venues as Venue[], reviews);
+  if (demo) {
+    // Clear rehearsal reviews on the demo venue so re-seeding resets the pitch moment.
+    const { error } = await supabase.from("reviews").delete().eq("venue_id", demo.id);
+    if (error) throw error;
   }
 
   const { error: pErr } = await supabase.from("profiles").insert(profiles);
@@ -240,6 +258,27 @@ async function main() {
   }
   const ups = reviews.filter((x) => x.thumbs_up).length;
   console.log(`Done: ${venues.length} venues, ${profiles.length} reviewers, ${reviews.length} reviews (${Math.round((100 * ups) / reviews.length)}% positive).`);
+  if (demo) console.log(`Demo auto-tag: review "${demo.venue}" with "${demo.tag}" -> it appears as "added by reviewers".`);
+}
+
+/**
+ * Pitch step 5: make one well-reviewed pub near the centre sit exactly one mention below
+ * AUTO_TAG_MIN_MENTIONS for a tag it doesn't have, so a single live review adds it.
+ */
+function prepareAutoTagDemo(venues: Venue[], reviews: { venue_id: string; thumbs_up: boolean; tags: string[] }[]) {
+  const TAG: TagId = "live_music";
+  const count = new Map<string, number>();
+  for (const rv of reviews) count.set(rv.venue_id, (count.get(rv.venue_id) ?? 0) + 1);
+  const pick = venues
+    .filter((v) => v.kind === "pub" && !v.tags.includes(TAG))
+    .filter((v) => distanceKm(CENTER_LAT, CENTER_LNG, v.lat, v.lng) < 0.6)
+    .filter((v) => reviews.filter((rv) => rv.venue_id === v.id && rv.thumbs_up).length >= 2)
+    .sort((a, b) => (count.get(b.id) ?? 0) - (count.get(a.id) ?? 0))[0];
+  if (!pick) return null;
+  const mine = reviews.filter((rv) => rv.venue_id === pick.id);
+  for (const rv of mine) rv.tags = rv.tags.filter((t) => t !== TAG);
+  for (const rv of mine.filter((x) => x.thumbs_up).slice(0, AUTO_TAG_MIN_MENTIONS - 1)) rv.tags.push(TAG);
+  return { id: pick.id, venue: pick.name, tag: tagLabel(TAG) };
 }
 
 main().catch((e) => {

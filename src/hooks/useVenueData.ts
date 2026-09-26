@@ -10,6 +10,12 @@ export interface VenueData {
   reviewsByVenue: Record<string, ReviewSignal[]>;
 }
 
+interface TagRow {
+  venue_id: string;
+  tag: string;
+  mentions: number;
+}
+
 interface ReviewRow {
   venue_id: string;
   thumbs_up: boolean;
@@ -22,28 +28,48 @@ let cache: VenueData | null = null;
 let inflight: Promise<VenueData> | null = null;
 const listeners = new Set<(d: VenueData) => void>();
 
+// Supabase caps every response at 1000 rows (project max-rows), so page through.
+const PAGE = 1000;
+
+/** Pages need a stable order or rows can be skipped/duplicated between pages. */
+async function fetchAll<T>(
+  table: string,
+  columns: string,
+  orderBy: string[],
+): Promise<{ data: T[]; error: { message: string } | null }> {
+  const out: T[] = [];
+  for (let from = 0; ; from += PAGE) {
+    let q = supabase.from(table).select(columns);
+    for (const col of orderBy) q = q.order(col);
+    const { data, error } = await q.range(from, from + PAGE - 1);
+    if (error) return { data: out, error };
+    out.push(...((data ?? []) as T[]));
+    if (!data || data.length < PAGE) return { data: out, error: null };
+  }
+}
+
 async function load(): Promise<VenueData> {
   const [v, t, r] = await Promise.all([
-    supabase.from("venues").select("id, name, kind, lat, lng, address, price_level, pint_price, tags"),
-    supabase.from("venue_review_tags").select("venue_id, tag, mentions"),
-    supabase.from("reviews").select("venue_id, thumbs_up, profiles(taste)"),
+    fetchAll<Venue>("venues", "id, name, kind, lat, lng, address, price_level, pint_price, tags", ["id"]),
+    fetchAll<TagRow>("venue_review_tags", "venue_id, tag, mentions", ["venue_id", "tag"]),
+    fetchAll<ReviewRow>("reviews", "id, venue_id, thumbs_up, profiles(taste)", ["id"]),
   ]);
   const err = v.error ?? t.error ?? r.error;
   if (err) throw new Error(err.message);
 
   const mentionsByVenue: Record<string, TagMentions> = {};
-  for (const row of (t.data ?? []) as { venue_id: string; tag: string; mentions: number }[]) {
+  for (const row of t.data) {
     (mentionsByVenue[row.venue_id] ??= {})[row.tag] = row.mentions;
   }
 
   const reviewsByVenue: Record<string, ReviewSignal[]> = {};
-  for (const row of (r.data ?? []) as unknown as ReviewRow[]) {
+  for (const row of r.data) {
     const p = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
     if (!p?.taste) continue;
     (reviewsByVenue[row.venue_id] ??= []).push({ thumbs_up: row.thumbs_up, reviewer_taste: p.taste });
   }
 
-  const venues = ((v.data ?? []) as Venue[]).map((x) => ({
+  const venues = v.data.map((x) => ({
     ...x,
     pint_price: x.pint_price === null ? null : Number(x.pint_price), // numeric comes back as string
   }));
