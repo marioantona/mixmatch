@@ -194,7 +194,8 @@ async function main() {
     if (error) throw error;
   }
 
-  const { data: venues, error: vErr } = await supabase.from("venues").select("*");
+  // Stable order: the RNG draws below depend on it, and the demo must look the same every run.
+  const { data: venues, error: vErr } = await supabase.from("venues").select("*").order("osm_id");
   if (vErr || !venues) throw vErr;
 
   console.log("Resetting synthetic reviewers...");
