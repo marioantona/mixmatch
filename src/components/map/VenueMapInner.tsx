@@ -81,6 +81,24 @@ export default function VenueMapInner({ venues, origin, compact = false }: Venue
         />
       </MapContainer>
 
+      {!compact && (
+        <ul
+          aria-label="Map key"
+          className="absolute right-3 top-3 z-[1000] flex gap-3 rounded-full bg-kerb/90 px-3 py-1.5 text-xs font-semibold shadow-lg"
+        >
+          {(["pub", "bar", "nightclub"] as const).map((k) => (
+            <li key={k} className="flex items-center gap-1.5">
+              <span className="size-2.5 rounded-full ring-1 ring-foam" style={{ background: KIND_HEX[k] }} aria-hidden="true" />
+              {KIND_LABEL[k]}
+            </li>
+          ))}
+          <li className="flex items-center gap-1.5">
+            <span className="size-2.5 rounded-full bg-sodium" aria-hidden="true" />
+            You
+          </li>
+        </ul>
+      )}
+
       {selected && !compact && (
         <div className="absolute inset-x-3 bottom-7 z-[1000] flex items-center gap-3 rounded-2xl bg-kerb p-3 shadow-xl">
           <Link href={`/venue/${selected.venue.id}`} className="min-w-0 flex-1">
