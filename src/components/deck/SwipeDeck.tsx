@@ -17,6 +17,8 @@ export interface SwipeDeckProps {
   onSwipe: (venue: RankedVenue, liked: boolean) => void;
   /** Rendered once every card has been swiped (or `venues` is empty). */
   emptyState?: ReactNode;
+  /** Tap (not drag) on the top card, or its Details button. */
+  onOpen?: (venue: RankedVenue) => void;
 }
 
 const SWIPE_OFFSET = 110;
@@ -30,7 +32,7 @@ type Fly = (liked: boolean) => void;
  * `onSwipe`. The deck resets to the first card whenever the set of venue ids
  * changes (e.g. new filters); a new array with the same ids keeps its place.
  */
-export function SwipeDeck({ venues, onSwipe, emptyState }: SwipeDeckProps) {
+export function SwipeDeck({ venues, onSwipe, emptyState, onOpen }: SwipeDeckProps) {
   const deckKey = venues.map((v) => v.venue.id).join(",");
   const [prevKey, setPrevKey] = useState(deckKey);
   const [index, setIndex] = useState(0);
@@ -100,6 +102,7 @@ export function SwipeDeck({ venues, onSwipe, emptyState }: SwipeDeckProps) {
               claim={claim}
               flyRef={pos === 0 ? flyRef : undefined}
               onDone={commit}
+              onOpen={onOpen}
             />
           ))
           .reverse()}
@@ -138,9 +141,13 @@ interface CardProps {
   claim: () => boolean;
   flyRef?: React.RefObject<Fly | null>;
   onDone: (liked: boolean) => void;
+  onOpen?: (venue: RankedVenue) => void;
 }
 
-function Card({ rv, pos, claim, flyRef, onDone }: CardProps) {
+function Card({ rv, pos, claim, flyRef, onDone, onOpen }: CardProps) {
+  // A tap = press and release within 8px and 500ms. Tracked with plain pointer events because
+  // motion's onTap on a draggable element stops the drag from starting.
+  const press = useRef<{ x: number; y: number; t: number } | null>(null);
   const reduce = useReducedMotion();
   const x = useMotionValue(0);
   const opacity = useMotionValue(1);
@@ -195,10 +202,31 @@ function Card({ rv, pos, claim, flyRef, onDone }: CardProps) {
       drag={top ? "x" : false}
       dragMomentum={false}
       onDragEnd={top ? onDragEnd : undefined}
+      onPointerDown={(e) => (press.current = { x: e.clientX, y: e.clientY, t: e.timeStamp })}
+      onPointerUp={(e) => {
+        const p = press.current;
+        press.current = null;
+        if (!top || !onOpen || !p) return;
+        const moved = Math.hypot(e.clientX - p.x, e.clientY - p.y);
+        if (moved < 8 && e.timeStamp - p.t < 500) onOpen(rv);
+      }}
       aria-hidden={!top}
     >
       <VenueCard rv={rv} />
 
+      {top && onOpen && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpen(rv);
+          }}
+          onPointerDownCapture={(e) => e.stopPropagation()}
+          className="absolute right-4 top-14 z-10 inline-flex min-h-11 items-center rounded-full bg-night/40 px-4 text-sm font-semibold backdrop-blur-sm"
+        >
+          Details
+        </button>
+      )}
       {top && (
         <>
           <motion.div

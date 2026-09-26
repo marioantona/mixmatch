@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { rankVenues, updateTaste, venueVector, type Filters, type RankedVenue } from "@/lib/scoring";
 import { supabase } from "@/lib/supabase";
 import { useProfile, type Profile } from "@/hooks/useProfile";
@@ -20,6 +21,16 @@ const VIEWS: { id: View; label: string }[] = [
 ];
 
 const swipedKey = (profileId: string) => `rounds.swiped.${profileId}`;
+// View + filters survive a trip to a venue page and back.
+const UI_KEY = "rounds.discoverUi";
+
+function readUi(): { view?: View; filters?: Filters } {
+  try {
+    return JSON.parse(window.sessionStorage.getItem(UI_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
 
 function readSwiped(profileId: string): Set<string> {
   try {
@@ -42,9 +53,22 @@ function Discover({ profile }: { profile: Profile }) {
   const { venues, mentionsByVenue, reviewsByVenue, loading, error, refresh } = useVenueData();
   const { origin } = useOrigin();
 
-  const [view, setView] = useState<View>("deck");
+  const router = useRouter();
+  const [view, setView] = useState<View>(() => readUi().view ?? "deck");
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [filters, setFilters] = useState<Filters>(() => ({ maxBudget: profile.budget, maxKm: 1, vibes: [] }));
+  const [filters, setFilters] = useState<Filters>(
+    () => readUi().filters ?? { maxBudget: profile.budget, maxKm: 1, vibes: [] },
+  );
+
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(UI_KEY, JSON.stringify({ view, filters }));
+    } catch {
+      // Storage unavailable: view resets to the deck.
+    }
+  }, [view, filters]);
+
+  const openVenue = useCallback((rv: RankedVenue) => router.push(`/venue/${rv.venue.id}`), [router]);
   // Ranking uses a taste snapshot, refreshed when filters are applied, so the
   // deck doesn't reorder under the user's thumb after every swipe.
   const [rankTaste, setRankTaste] = useState(profile.taste);
@@ -145,6 +169,7 @@ function Discover({ profile }: { profile: Profile }) {
         <SwipeDeck
           venues={remaining}
           onSwipe={onSwipe}
+          onOpen={openVenue}
           emptyState={
             <Message text={`Nothing left within ${filters.maxKm} km. Widen your distance.`}>
               <Button onClick={() => setFiltersOpen(true)}>Change filters</Button>

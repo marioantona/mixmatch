@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { rankVenues, type RankedVenue } from "@/lib/scoring";
 import { DEMO_ORIGIN } from "@/lib/supabase";
 import { fetchMyGroupSwipes, groupTaste, saveGroupSwipe, type Member } from "@/lib/group";
@@ -21,6 +22,7 @@ export interface GroupDeckProps {
  * personal taste.
  */
 export function GroupDeck({ groupId, meId, members }: GroupDeckProps) {
+  const router = useRouter();
   const { venues, mentionsByVenue, reviewsByVenue, loading, error, refresh } = useVenueData();
   const [swiped, setSwiped] = useState<Set<string> | null>(null);
   const [saveError, setSaveError] = useState(false);
@@ -85,6 +87,7 @@ export function GroupDeck({ groupId, meId, members }: GroupDeckProps) {
       <SwipeDeck
         venues={remaining}
         onSwipe={onSwipe}
+        onOpen={(rv) => router.push(`/venue/${rv.venue.id}`)}
         emptyState={
           <p className="px-6 text-center text-foam/70">
             You&apos;ve been through everything nearby. Waiting on the others — matches will pop up here.
