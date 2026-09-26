@@ -110,3 +110,7 @@ opening-hours logic, native app packaging. Mention them in the pitch as "next".
 
 `npx tsc --noEmit` and `npm run build` pass, the screen works at 390px width in both
 touch and mouse input, and it's been clicked through once in the browser.
+
+## Next.js 16
+
+This is Next.js 16 — read @AGENTS.md; version docs live in `node_modules/next/dist/docs/`.
