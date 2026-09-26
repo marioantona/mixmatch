@@ -83,7 +83,12 @@ out center tags;`;
   console.log("Fetching venues from OpenStreetMap (Overpass)...");
   const res = await fetch("https://overpass-api.de/api/interpreter", {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    // Overpass rejects generic User-Agents (e.g. Node's default) with 406.
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Accept: "application/json",
+      "User-Agent": "Rounds-hackathon-seed/1.0 (github.com/marioantona/hackathon)",
+    },
     body: "data=" + encodeURIComponent(q),
   });
   if (!res.ok) throw new Error(`Overpass error ${res.status}: ${await res.text()}`);
