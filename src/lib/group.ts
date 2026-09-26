@@ -110,3 +110,47 @@ export async function saveGroupSwipe(groupId: string, profileId: string, venueId
     );
   if (error) throw new Error(error.message);
 }
+
+/**
+ * Leave a group. My group swipes go first: group_matches compares distinct likers
+ * with the current member count, so a departed member's likes would block matches.
+ */
+export async function leaveGroup(groupId: string, profileId: string): Promise<void> {
+  const s = await supabase.from("swipes").delete().eq("group_id", groupId).eq("profile_id", profileId);
+  if (s.error) throw new Error(s.error.message);
+  const m = await supabase.from("group_members").delete().eq("group_id", groupId).eq("profile_id", profileId);
+  if (m.error) throw new Error(m.error.message);
+}
+
+// ---------- the group this device is currently in (for the bottom nav) ----------
+
+const ACTIVE_GROUP_KEY = "rounds.activeGroup";
+const ACTIVE_GROUP_EVENT = "rounds:activeGroup";
+
+export function getActiveGroup(): string | null {
+  try {
+    return window.localStorage.getItem(ACTIVE_GROUP_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setActiveGroup(code: string | null) {
+  try {
+    if (code) window.localStorage.setItem(ACTIVE_GROUP_KEY, code);
+    else window.localStorage.removeItem(ACTIVE_GROUP_KEY);
+  } catch {
+    // Nav just falls back to /group.
+  }
+  window.dispatchEvent(new Event(ACTIVE_GROUP_EVENT));
+}
+
+/** For useSyncExternalStore. */
+export function subscribeActiveGroup(onChange: () => void): () => void {
+  window.addEventListener(ACTIVE_GROUP_EVENT, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(ACTIVE_GROUP_EVENT, onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}

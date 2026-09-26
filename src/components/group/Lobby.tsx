@@ -4,15 +4,17 @@ import { useState } from "react";
 import type { Member } from "@/lib/group";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "./Initials";
+import { LeaveButton } from "./LeaveButton";
 
 export interface LobbyProps {
   code: string;
   members: Member[];
   meId: string;
   onStart: () => void;
+  onLeave: () => Promise<void>;
 }
 
-export function Lobby({ code, members, meId, onStart }: LobbyProps) {
+export function Lobby({ code, members, meId, onStart, onLeave }: LobbyProps) {
   const [copied, setCopied] = useState(false);
   const ready = members.length >= 2;
 
@@ -62,6 +64,7 @@ export function Lobby({ code, members, meId, onStart }: LobbyProps) {
         {ready ? "Start swiping" : "Waiting for friends…"}
       </Button>
       {!ready && <p className="-mt-5 text-center text-sm text-foam/70">Share the code — you need at least 2 people.</p>}
+      <LeaveButton onLeave={onLeave} className="self-center" />
     </div>
   );
 }

@@ -55,6 +55,10 @@ export function useGroup(code: string, profileId: string | undefined) {
             { event: "INSERT", schema: "public", table: "group_members", filter: `group_id=eq.${g.id}` },
             () => void reloadMembers(g.id).catch(() => {}),
           )
+          // DELETE events can't be filtered server-side; the old row carries its primary key (incl. group_id).
+          .on("postgres_changes", { event: "DELETE", schema: "public", table: "group_members" }, (payload) => {
+            if ((payload.old as { group_id?: string }).group_id === g.id) void reloadMembers(g.id).catch(() => {});
+          })
           .subscribe();
       } catch {
         if (!cancelled) setStatus("error");

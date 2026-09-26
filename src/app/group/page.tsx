@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import Link from "next/link";
+import { useState, useSyncExternalStore, type FormEvent } from "react";
 import { useProfile } from "@/hooks/useProfile";
-import { CODE_RE, createGroup } from "@/lib/group";
-import { Button } from "@/components/ui/Button";
+import { CODE_RE, createGroup, getActiveGroup, subscribeActiveGroup } from "@/lib/group";
+import { Button, buttonClass } from "@/components/ui/Button";
 
 export default function GroupPage() {
   const { profile } = useProfile();
@@ -12,6 +13,7 @@ export default function GroupPage() {
   const [code, setCode] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const activeGroup = useSyncExternalStore(subscribeActiveGroup, getActiveGroup, () => null);
 
   async function start() {
     if (!profile || creating) return;
@@ -41,7 +43,12 @@ export default function GroupPage() {
       </header>
 
       <section className="flex flex-col gap-3">
-        <Button full onClick={start} disabled={creating}>
+        {activeGroup && (
+          <Link href={`/g/${activeGroup}`} className={buttonClass("go", true)}>
+            Back to group {activeGroup}
+          </Link>
+        )}
+        <Button full variant={activeGroup ? "ghost" : "primary"} onClick={start} disabled={creating}>
           {creating ? "Starting…" : "Start a group"}
         </Button>
         {error && (

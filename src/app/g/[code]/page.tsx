@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { CODE_RE, type Member } from "@/lib/group";
+import { CODE_RE, leaveGroup, setActiveGroup, type Member } from "@/lib/group";
 import { useProfile } from "@/hooks/useProfile";
 import { useGroup } from "@/hooks/useGroup";
 import { useGroupMatches } from "@/hooks/useGroupMatches";
@@ -12,6 +12,7 @@ import { Lobby } from "@/components/group/Lobby";
 import { GroupDeck } from "@/components/group/GroupDeck";
 import { MatchesRow } from "@/components/group/MatchesRow";
 import { MatchOverlay } from "@/components/group/MatchOverlay";
+import { LeaveButton } from "@/components/group/LeaveButton";
 import { Button, buttonClass } from "@/components/ui/Button";
 
 const phaseKey = (groupId: string) => `rounds.groupPhase.${groupId}`;
@@ -28,6 +29,7 @@ export default function GroupLobbyPage() {
   const { code: rawCode } = useParams<{ code: string }>();
   const code = rawCode.toUpperCase();
   const { profile } = useProfile();
+  const router = useRouter();
   const { status, group, members, joinedName, clearJoined, retry } = useGroup(code, profile?.id);
   const { venues } = useVenueData();
 
@@ -48,6 +50,24 @@ export default function GroupLobbyPage() {
 
   // Resume the deck after a reload (state adjusted during render; group is null on the server).
   if (group && !started && members.length >= 2 && readStarted(group.id)) setDeckMembers(members);
+
+  // Remember the group so the nav's "Group" tab comes back here; forget codes that no longer exist.
+  useEffect(() => {
+    if (status === "ready") setActiveGroup(code);
+    else if (status === "not-found") setActiveGroup(null);
+  }, [status, code]);
+
+  const leave = useCallback(async () => {
+    if (!group || !profile) return;
+    await leaveGroup(group.id, profile.id);
+    setActiveGroup(null);
+    try {
+      window.sessionStorage.removeItem(phaseKey(group.id));
+    } catch {
+      // Nothing to clean up.
+    }
+    router.push("/group");
+  }, [group, profile, router]);
 
   useEffect(() => {
     if (!joinedName) return;
@@ -79,16 +99,18 @@ export default function GroupLobbyPage() {
       )}
 
       {!started ? (
-        <Lobby code={group.code} members={members} meId={profile.id} onStart={start} />
+        <Lobby code={group.code} members={members} meId={profile.id} onStart={start} onLeave={leave} />
       ) : (
         <div className="flex min-h-[calc(100dvh-4rem-env(safe-area-inset-bottom))] flex-col gap-4 px-4 pb-4 pt-4">
           <header className="flex items-center gap-3">
-            <h1 className="font-display text-3xl font-extrabold" style={{ fontVariationSettings: '"wdth" 75' }}>
+            <h1 className="whitespace-nowrap font-display text-3xl font-extrabold" style={{ fontVariationSettings: '"wdth" 75' }}>
               Group {group.code}
             </h1>
-            <span className="ml-auto text-sm text-foam/70">
+            {/* Member count hides on the narrowest phones to keep the header on one line. */}
+            <span className="ml-auto hidden text-sm text-foam/70 min-[380px]:inline">
               {members.length} {members.length === 1 ? "person" : "people"}
             </span>
+            <LeaveButton onLeave={leave} className="ml-auto min-[380px]:ml-0" />
           </header>
           <MatchesRow venues={matchedVenues} />
           <GroupDeck groupId={group.id} meId={profile.id} members={deckMembers} />
