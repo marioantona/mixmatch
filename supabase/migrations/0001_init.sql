@@ -1,8 +1,8 @@
--- MixMatch: hackathon schema.
+-- MixMatch: database schema (MVP).
 -- Paste this whole file into Supabase Dashboard -> SQL Editor -> Run.
 -- It is safe to re-run: it drops and recreates everything.
 --
--- HACKATHON SHORTCUT: there is no auth. Profiles use a client-generated UUID
+-- MVP SHORTCUT: there is no auth. Profiles use a client-generated UUID
 -- stored on the device, and RLS policies are wide open. Do not ship this as-is.
 
 drop view if exists venue_review_tags cascade;
@@ -28,7 +28,7 @@ create table venues (
   lng           double precision not null,
   address       text,
   price_level   smallint not null check (price_level between 1 and 3),
-  pint_price    numeric(4, 2),          -- SIMULATED in seed data; say so in the pitch
+  pint_price    numeric(4, 2),          -- SIMULATED in seed data; never present as verified
   tags          text[] not null default '{}',
   created_at    timestamptz not null default now()
 );
@@ -114,14 +114,14 @@ language sql stable as $$
   having count(distinct s.profile_id) = m.n;
 $$;
 
--- ---------- open hackathon policies ----------
+-- ---------- open demo policies ----------
 
 do $$
 declare t text;
 begin
   foreach t in array array['venues','profiles','groups','group_members','swipes','reviews'] loop
     execute format('alter table %I enable row level security', t);
-    execute format('create policy "hackathon_open" on %I for all to anon, authenticated using (true) with check (true)', t);
+    execute format('create policy "open_demo_access" on %I for all to anon, authenticated using (true) with check (true)', t);
   end loop;
 end $$;
 

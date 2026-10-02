@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
-// Single browser client. Hackathon mode: no auth, open RLS (see supabase/migrations/0001_init.sql).
+// Single browser client. MVP mode: no auth, open RLS (see supabase/migrations/0001_init.sql).
 export const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

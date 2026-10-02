@@ -87,7 +87,7 @@ out center tags;`;
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
       Accept: "application/json",
-      "User-Agent": "MixMatch-hackathon-seed/1.0 (github.com/marioantona/hackathon)",
+      "User-Agent": "MixMatch-seed/1.0 (github.com/marioantona/mixmatch)",
     },
     body: "data=" + encodeURIComponent(q),
   });
@@ -246,7 +246,7 @@ async function main() {
 
   const demo = prepareAutoTagDemo(venues as Venue[], reviews);
   if (demo) {
-    // Clear rehearsal reviews on the demo venue so re-seeding resets the pitch moment.
+    // Clear earlier live reviews on the demo venue so re-seeding resets the auto-tag moment.
     const { error } = await supabase.from("reviews").delete().eq("venue_id", demo.id);
     if (error) throw error;
   }
@@ -263,7 +263,7 @@ async function main() {
 }
 
 /**
- * Pitch step 5: make one well-reviewed pub near the centre sit exactly one mention below
+ * Demo auto-tag: make one well-reviewed pub near the centre sit exactly one mention below
  * AUTO_TAG_MIN_MENTIONS for a tag it doesn't have, so a single live review adds it.
  */
 function prepareAutoTagDemo(venues: Venue[], reviews: { venue_id: string; thumbs_up: boolean; tags: string[] }[]) {
