@@ -1,4 +1,4 @@
-# Design
+# MixMatch design system
 
 **Idea: a city centre at 11pm.** Deep blue-violet night, sodium-orange streetlight,
 and each venue card coloured like the inside of that kind of place: mahogany pub,
@@ -19,9 +19,9 @@ width display face *are* the imagery. That's the one bold thing; everything else
 | `bar` | `#1F4A5A` | Bar card field |
 | `club` | `#4B1F5A` | Nightclub card field |
 
-Secondary text: `foam` at 70% opacity. Borders: `foam` at 12%. Define these in
-`globals.css` as Tailwind theme tokens (`--color-night`, etc.) so utilities like
-`bg-night text-foam` work.
+Secondary text: `foam` at 70% opacity. Borders: `foam` at 12%. The tokens live in
+`src/app/globals.css` as Tailwind v4 theme variables (`--color-night`, etc.), so
+utilities like `bg-night text-foam` work.
 
 ## Type
 
