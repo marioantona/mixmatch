@@ -123,9 +123,13 @@ so every run of the demo looks the same.
 | Map | `react-leaflet` + Leaflet, OpenStreetMap tiles darkened with CSS |
 | Hosting | Vercel |
 
+## Try it out
+Try using what we've built at [MixMatch](https://mixmatch-project.vercel.app/start). 
+
 ## Running it locally
 
 Prerequisites: Node.js 20+ and a free [Supabase](https://supabase.com) project.
+Note: only locations in Manchester City Center have been added so far. If your gps is >2km from MCR city centre no locations will come up. 
 
 ```bash
 git clone https://github.com/marioantona/mixmatch.git
